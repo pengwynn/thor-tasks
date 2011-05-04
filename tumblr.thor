@@ -1,15 +1,16 @@
-require 'octopussy'
 require 'buzzsprout'
+require 'octokit'
+
 
 
 module Tumblr
-  
+
   class Post < Thor
     include Thor::Actions
-    
+
     map "-r" => :repo
     map "-e" => :episode
-    
+
     desc "plain filename", "Creates a plain Tumblr post"
     def plain(filename)
 
@@ -37,18 +38,20 @@ post
         say e.message
       end
     end
-    
+
     desc "repo URL", "Posts a link to a GitHub repo to Tumblr"
     def repo(url)
       github_slug = url.split("/").reverse[0..1].reverse.join("/")
-      
+
       tags = ask("tags:")
       tags = tags.split(",").map(&:strip).unshift('github').uniq
-      
+
       post_path = github_slug.gsub('/', '_')
       begin
         if not File.exists?(post_path) or yes?("File exists, overwrite?")
-          repo = Octopussy.repo(github_slug)
+          repo = Octokit.repo(github_slug)
+          tags << Octokit.languages(github_slug).keys.first
+          tags.uniq!
           raise "Repo not found" unless repo
           name = "#{repo.name}: #{repo.description}"
           slug = name.downcase.gsub(/[^a-z1-9]+/, '-').chomp('-')
@@ -72,7 +75,7 @@ repo_post
         say e.message
       end
     end
-    
+
     desc "episode URL", "Post a buzzsprout episode to Tumblr"
     def episode(url)
       begin
@@ -104,6 +107,6 @@ episode_post
         say e.message
       end
     end
-  
+
   end
 end
